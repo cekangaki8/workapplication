@@ -1,0 +1,98 @@
+package com.dpwn.smartscanus.main;
+
+
+import com.dpwn.smartscanus.dspscanning.IDSPScanningInputPort;
+import com.dpwn.smartscanus.dspscanning.interactor.DspScanningInteractor;
+import com.dpwn.smartscanus.newopsapi.AuthenticationProvider;
+import com.dpwn.smartscanus.newopsapi.ILoadTransportApi;
+import com.dpwn.smartscanus.newopsapi.LoadTransportServiceProvider;
+import com.dpwn.smartscanus.newopsapi.SortingServiceProvider;
+import com.dpwn.smartscanus.newopsapi.IAuthenticationApi;
+import com.dpwn.smartscanus.newopsapi.ISortingServiceApi;
+import com.dpwn.smartscanus.newopsapi.NewOpsRestAdapter;
+import com.dpwn.smartscanus.transport.ITUNestingInputPort;
+import com.dpwn.smartscanus.transport.interactor.LoadTUNestingInteractor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Binder;
+import com.google.inject.Module;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.otto.Bus;
+
+import com.dpwn.smartscanus.BuildConfig;
+import com.dpwn.smartscanus.annotations.BluetoothOn;
+import com.dpwn.smartscanus.annotations.NewopsApp;
+import com.dpwn.smartscanus.annotations.NewopsHost;
+import com.dpwn.smartscanus.annotations.NewopsPort;
+import com.dpwn.smartscanus.annotations.IOSchedular;
+import com.dpwn.smartscanus.annotations.SSLOn;
+import com.dpwn.smartscanus.annotations.UISchedular;
+import com.dpwn.smartscanus.annotations.WiFiOn;
+import com.dpwn.smartscanus.http.HttpClientProvider;
+import com.dpwn.smartscanus.login.ILoginInputPort;
+import com.dpwn.smartscanus.login.interactor.LoginApiInteractor;
+import com.dpwn.smartscanus.nfc.helper.INFCHelper;
+import com.dpwn.smartscanus.nfc.helper.NFCHelper;
+import com.dpwn.smartscanus.fullServiceImb.IFullServiceInputPort;
+import com.dpwn.smartscanus.fullServiceImb.interactor.FullServiceInteractor;
+
+import rx.Scheduler;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
+
+/**
+ * Default Modules class
+ * Created by fshamim on 04.09.14.
+ */
+public class MainModules implements Module {
+
+    private App app;
+
+    private NewOpsRestAdapter newOpsRestAdapter= new NewOpsRestAdapter();
+
+    /**
+     * Needs currently app reference but it should be removed later on because
+     * it introduce circular dependence between the app and this class as per sonar.
+     *
+     * @param app main app reference
+     */
+    public MainModules(App app) {
+        this.app = app;
+    }
+
+    @Override
+    public void configure(Binder binder) {
+        binder.bind(App.class).toInstance(app);
+        binder.bind(NewOpsRestAdapter.class).toInstance(newOpsRestAdapter);
+        boolean wifiOn = BuildConfig.WIFI_ON;
+        binder.bindConstant().annotatedWith(NewopsHost.class).to(BuildConfig.HOST);
+        binder.bindConstant().annotatedWith(NewopsApp.class).to(BuildConfig.APP);
+        binder.bindConstant().annotatedWith(NewopsPort.class).to(BuildConfig.PORT);
+        binder.bindConstant().annotatedWith(SSLOn.class).to(BuildConfig.SSL_ON);
+        binder.bindConstant().annotatedWith(BluetoothOn.class).to(BuildConfig.BLUETOOTH_ON);
+        binder.bindConstant().annotatedWith(WiFiOn.class).to(wifiOn);
+
+        binder.bind(Scheduler.class).annotatedWith(UISchedular.class).toInstance(AndroidSchedulers.mainThread());
+        binder.bind(Scheduler.class).annotatedWith(IOSchedular.class).toInstance(Schedulers.io());
+        binder.bind(Bus.class).toProvider(MainThreadBusProvider.class);
+        binder.bind(ObjectMapper.class).toInstance(new ObjectMapper());
+
+        binder.bind(INFCHelper.class).to(NFCHelper.class);
+
+        binder.bind(OkHttpClient.class).toProvider(HttpClientProvider.class).asEagerSingleton();
+
+        binder.bind(IAuthenticationApi.class).toProvider(AuthenticationProvider.class);
+
+        //Fullservice interface interaction
+        binder.bind(ISortingServiceApi.class).toProvider(SortingServiceProvider.class);
+        binder.bind(ILoginInputPort.class).to(LoginApiInteractor.class).asEagerSingleton();
+        binder.bind(IFullServiceInputPort.class).to(FullServiceInteractor.class).asEagerSingleton();
+
+        //DSP Scanning Interface interaction
+        binder.bind(IDSPScanningInputPort.class).to(DspScanningInteractor.class).asEagerSingleton();
+
+        //Load Transport interface interaction
+        binder.bind(ILoadTransportApi.class).toProvider(LoadTransportServiceProvider.class);
+        binder.bind(ITUNestingInputPort.class).to(LoadTUNestingInteractor.class);
+
+    }
+}

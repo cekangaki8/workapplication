@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="facility_keys">
+        <item>ATL</item>
+        <item>BOS</item>
+        <item>BWI</item>
+        <item>CAK</item>
+        <item>CVG</item>
+        <item>DEN</item>
+        <item>DFW</item>
+        <item>EWR</item>
+        <item>IAH</item>
+        <item>LAX</item>
+        <item>MCO</item>
+        <item>MEM</item>
+        <item>ORD</item>
+        <item>PHX</item>
+        <item>RDU</item>
+        <item>SEA</item>
+        <item>SFO</item>
+        <item>SLC</item>
+        <item>STL</item>
+    </string-array>
+
+    <string-array name="facility_urls">
+        <item>https://usatlls8001.phx-dc.dhl.com,http://usatlls8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://usbosls8001.phx-dc.dhl.com,http://usbosls8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://usbwils8001.phx-dc.dhl.com,http://usbwils8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://uscakls8001.phx-dc.dhl.com,http://uscakls8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://uscvgls00020001.phx-dc.dhl.com,https://uscvgls8001.phx-dc.dhl.com,http://uscvgls00020001.phx-dc.dhl.com,http://uscvgls8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://usdenls8001.phx-dc.dhl.com,http://usdenls8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://usdfwls8001.phx-dc.dhl.com,http://usdfwls8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://usewrls00020001.phx-dc.dhl.com,https://usewrls8001.phx-dc.dhl.com,http://usewrls00020001.phx-dc.dhl.com,http://usewrls8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://usiahls8001.phx-dc.dhl.com,http://usiahls8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://uslaxls8001.phx-dc.dhl.com,http://uslaxls8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://usmcols8001.phx-dc.dhl.com,http://usmcols8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://usmemls8001.phx-dc.dhl.com,http://usmemls8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://usordls8001.phx-dc.dhl.com,http://usordls8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://usphxls8001.phx-dc.dhl.com,http://usphxls8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://rduappnops1.dhlglobalmail.corp,https://usrduls8001.phx-dc.dhl.com,http://rduappnops1.dhlglobalmail.corp,http://usrduls8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://usseals0002001.phx-dc.dhl.com,https://usseals8001.phx-dc.dhl.com,http://usseals0002001.phx-dc.dhl.com,http://usseals8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://ussfols8001.phx-dc.dhl.com,http://ussfols8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://usslcls8001.phx-dc.dhl.com,http://usslcls8001.phx-dc.dhl.com|9001|false</item>
+        <item>https://usstlls8001.phx-dc.dhl.com,http://usstlls8001.phx-dc.dhl.com|9001|false</item>
+    </string-array>
+
+</resources>

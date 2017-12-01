@@ -1,0 +1,579 @@
+package com.dpwn.smartscanus.main.ui;
+
+
+import android.app.Activity;
+import android.app.ActivityManager;
+import android.bluetooth.BluetoothAdapter;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
+import android.graphics.Color;
+import android.net.wifi.WifiManager;
+import android.os.Bundle;
+import android.os.Message;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
+import android.util.TypedValue;
+import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.TextView;
+
+import com.dpwn.smartscanus.dashboard.MenuFragment;
+import com.google.inject.Inject;
+import com.squareup.otto.Subscribe;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.dpwn.smartscanus.BuildConfig;
+import com.dpwn.smartscanus.R;
+import com.dpwn.smartscanus.bluetooth.BluetoothSPPConnection;
+import com.dpwn.smartscanus.bluetooth.ConnectionHandler;
+import com.dpwn.smartscanus.bluetooth.DeviceListActivity;
+import com.dpwn.smartscanus.events.RefreshEvent;
+import com.dpwn.smartscanus.events.RingBeepEvent;
+import com.dpwn.smartscanus.events.RingReadEvent;
+import com.dpwn.smartscanus.events.RingStateChangeEvent;
+import com.dpwn.smartscanus.events.ShowToastEvent;
+import com.dpwn.smartscanus.events.TTSEvent;
+import com.dpwn.smartscanus.interactor.IInteractorInputPort;
+import com.dpwn.smartscanus.kiosk.KioskModeActivity;
+import com.dpwn.smartscanus.logging.L;
+import com.dpwn.smartscanus.login.ILoginInputPort;
+import com.dpwn.smartscanus.login.ui.LoginFragment;
+import com.dpwn.smartscanus.utils.PrefUtils;
+import com.dpwn.smartscanus.utils.PrefsConsts;
+import com.dpwn.smartscanus.utils.Utils;
+import com.dpwn.smartscanus.utils.ui.DialogUtils;
+import com.dpwn.smartscanus.utils.ui.IFragmentContainer;
+
+import org.apache.commons.lang3.StringUtils;
+
+import roboguice.inject.ContentView;
+
+/**
+ * Entrypoint for the app after login.
+ */
+@ContentView(R.layout.activity_main)
+public class MainActivity extends KioskModeActivity implements IFragmentContainer {
+
+    private static final int REQUEST_BT_CONNECT = 10;
+    private static final java.lang.String TAG = MainActivity.class.getSimpleName();
+    private static final String IS_ORIENTATION_LOCKED = "IS_ORIENTATION_LOCKED";
+    public static final boolean ADMIN_MODE_ON = true;
+    public static final boolean ADMIN_MODE_OFF = false;
+
+
+    @Inject
+    private ConnectionHandler connectionHandler;
+
+    @Inject
+    private DialogUtils dlgUtils;
+
+    @Inject
+    private ILoginInputPort interactor;
+    @Inject
+    private PrefUtils prefUtils;
+    @Inject
+    private SharedPreferences prefs;
+
+
+    private static Class<? extends Fragment> currentFragment = null;
+    static Bundle currentFragmentArgs = null;
+    private Menu menu;
+    private boolean isOrientationLocked;
+    private volatile boolean showPowerDialog;
+    private int counter;
+    private String fragmentOrientation;
+
+
+    @Override
+    public void setContentView(int layoutResID) {
+        if (BuildConfig.IS_PRODUCTION) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        }
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        super.setContentView(layoutResID);
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        L.d(TAG, "onCreate");
+        turnOnBluetoothAutomatically();
+        turnOnWifiAutomatically();
+        prefUtils.initAdminMode();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (!hasFocus && !prefUtils.isAdminMode()) {
+            // Close every kind of system dialog except power dialog
+            if (!showPowerDialog) {
+                Intent closeDialog = new Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
+                sendBroadcast(closeDialog);
+            }else if( counter < 1){
+                counter++;
+            }else{
+                showPowerDialog = false;
+            }
+        }
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (Utils.isKeyBlocked(event.getKeyCode()) && !prefUtils.isAdminMode()) {
+            showPowerDialog = Utils.checkToAllowPowerDialog(event, showPowerDialog);
+            if(showPowerDialog){
+                counter = 0 ;
+            }
+            return true;
+        } else {
+            return super.dispatchKeyEvent(event);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        L.d(TAG, "onActivityResult: " + requestCode + ", resultcode" + resultCode);
+        if (requestCode == REQUEST_BT_CONNECT && data != null) {
+            if (resultCode == Activity.RESULT_OK) {
+                String lastSelectedDeviceAddress = data.getExtras().getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
+                prefs.edit().putString(PrefsConsts.LAST_SELECTED_DEVICE, lastSelectedDeviceAddress).apply();
+            } else if (resultCode == DeviceListActivity.EXTRA_DEVICE_NOT_CONFIGURED) {
+                dlgUtils.showDialogPositive(this, this.getString(R.string.conn_error_ringscanner), R.drawable.ic_warning_red, this.getString(android.R.string.yes), null, false);
+            }
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putBoolean(IS_ORIENTATION_LOCKED, isOrientationLocked);
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        isOrientationLocked = savedInstanceState.getBoolean(IS_ORIENTATION_LOCKED, false);
+        super.onRestoreInstanceState(savedInstanceState);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        L.d(TAG, "onResume");
+        mBus.register(this);
+        setUpActiveFragment();
+
+        setUpScannerConnectionStatus();
+    }
+
+    @Override
+    public void onDestroy() {
+        if (isFinishing()) {
+            connectionHandler.disconnectDevice();
+        }
+
+        super.onDestroy();
+    }
+
+    private void setUpActiveFragment() {
+        if (currentFragment == null && getSupportFragmentManager().findFragmentById(R.id.content_frame) == null) {
+            // Show LoginFragment fragment by default.
+            currentFragment = LoginFragment.class;
+            currentFragmentArgs = null;
+        }
+
+        if (currentFragment != null) {
+            setContentFragment(currentFragment, true, currentFragmentArgs);
+        }
+        currentFragment = null;
+        currentFragmentArgs = null;
+    }
+
+    private void setUpScannerConnectionStatus() {
+        String lastSelectedDeviceAddress = prefs.getString(PrefsConsts.LAST_SELECTED_DEVICE, null);
+        String lastConnectedDeviceAddress = prefs.getString(PrefsConsts.LAST_CONNECTED_DEVICE, null);
+        int connectionState = connectionHandler.getRingscannerConnectionState();
+        switch (connectionState) {
+            case BluetoothSPPConnection.STATE_NONE:
+                handleConnectionStateNone(lastSelectedDeviceAddress, lastConnectedDeviceAddress);
+                break;
+            case BluetoothSPPConnection.STATE_CONNECTED:
+                handleConnectionStateConnected(lastSelectedDeviceAddress, lastConnectedDeviceAddress);
+                break;
+            case BluetoothSPPConnection.STATE_CONNECTION_FAILED:
+                handleConnectionStateFailed(lastSelectedDeviceAddress);
+                break;
+            default:
+                L.e(TAG, "Undefined connection state");
+                break;
+        }
+    }
+
+    @Override
+    public <T extends Fragment> boolean setContentFragment(Class<T> newFragmentClass, boolean anim, Bundle arguments) {
+
+        //note: if arguments are set, we must always make new instance, to ba able to pass new arguments
+        //otherwise we may assume that existing instance is enough
+        if (arguments == null) {
+            Fragment frag = getSupportFragmentManager().findFragmentById(R.id.content_frame);
+            if (frag != null && frag.getClass().equals(newFragmentClass)) {
+                L.d(TAG, "Fragment '" + newFragmentClass.getSimpleName() + "' already opened in MainActivity - retaining old copy");
+                return false;
+            }
+            fragmentOrientation = null;
+        }
+
+        try {
+            L.d(TAG, "Creating new '" + newFragmentClass.getSimpleName() + "' fragment for HomeActivity...");
+            T newFragment = newFragmentClass.getConstructor().newInstance();
+            if (arguments != null) {
+                fragmentOrientation = arguments.getString(PrefsConsts.FRAGMENT_ORIENTATION);
+                newFragment.setArguments(arguments);
+            }
+            FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+            if (anim) {
+                if (newFragmentClass.equals(MenuFragment.class)) {
+                    ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
+                } else {
+                    ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_CLOSE);
+                }
+            }
+            ft.replace(R.id.content_frame, newFragment).commit();
+            L.d(TAG, "Fragment '" + newFragmentClass.getSimpleName() + "' committed in HomeActivity");
+            return true;
+        } catch (Exception e) {
+            L.e(TAG, "Fragment Content Error", e);
+        }
+        return false;
+    }
+
+    private void handleConnectionStateNone(String lastSelectedDeviceAddress, String lastConnectedDeviceAddress) {
+        if (lastConnectedDeviceAddress == null && lastSelectedDeviceAddress == null) {
+            L.e(TAG, "******connection case 1: no connection exist and no device selected and was connected");
+            mBus.post(new ShowToastEvent(getString(R.string.plz_connect_scanner), ShowToastEvent.ToastDuration.LONG).setColor(ShowToastEvent.ToastColor.BLUE));
+        } else if (lastSelectedDeviceAddress != null) {
+            L.e(TAG, "******connection case 2: no connection and a device is selected for connection");
+            connectDevice(lastSelectedDeviceAddress);
+        } else {
+            L.e(TAG, "******connection case 3: no connection and there must be a previous connection, so try to auto connect");
+            connectDevice(lastConnectedDeviceAddress);
+        }
+    }
+
+    private void handleConnectionStateFailed(String lastSelectedDeviceAddress) {
+        if (lastSelectedDeviceAddress != null) {
+            L.e(TAG, "******connection case 2: no connection and a device is selected for connection");
+            connectDevice(lastSelectedDeviceAddress);
+        }
+    }
+
+    private void handleConnectionStateConnected(String lastSelectedDeviceAddress, String lastConnectedDeviceAddress) {
+        L.e(TAG, "******connection case 4: connected ");
+        outputPortHelper.hideProgress();
+        if (lastSelectedDeviceAddress != null && lastConnectedDeviceAddress != null) {
+            if (!lastSelectedDeviceAddress.equals(lastConnectedDeviceAddress)) {
+                L.e(TAG, "******connection case 4-1: connected but connect to a different device");
+                connectDevice(lastSelectedDeviceAddress);
+            } else {
+                L.e(TAG, "******connection case 4-2: same device selected for connection");
+                //remove the selected device from prefs since its the same connected device
+                prefs.edit().remove(PrefsConsts.LAST_SELECTED_DEVICE).apply();
+                String msg = getString(R.string.scanner_alrdy_connected);
+                mBus.post(new ShowToastEvent(msg, ShowToastEvent.ToastDuration.LONG).setColor(ShowToastEvent.ToastColor.BLUE));
+                mBus.post(new RingBeepEvent());
+            }
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        L.d(TAG, "onPause");
+        mBus.unregister(this);
+        prefs.edit().remove(PrefsConsts.LAST_SELECTED_DEVICE).apply();
+        if (isApplicationSentToBackground(this)) {
+            L.d(TAG, "onHome");
+            if (connectionHandler != null && prefUtils.isAdminMode()) {
+                connectionHandler.disconnectDevice();
+            }
+        }
+    }
+
+    @Override
+    public List<IInteractorInputPort> getInteractors() {
+        ArrayList<IInteractorInputPort> interactors = new ArrayList<IInteractorInputPort>();
+        interactors.add(interactor);
+        return interactors;
+    }
+
+    private boolean isApplicationSentToBackground(final Context context) {
+        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningTaskInfo> tasks = am.getRunningTasks(1);
+        if (!tasks.isEmpty()) {
+            ComponentName topActivity = tasks.get(0).topActivity;
+            if (!topActivity.getPackageName().equals(context.getPackageName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void onBackPressed() {
+        L.d(TAG, "back button pressed");
+
+        Fragment frag = getSupportFragmentManager().findFragmentById(R.id.content_frame);
+        if (frag != null && frag instanceof MenuFragment) {
+            dlgUtils.showHideLogoutDialog(this, this, true);
+        } else if (frag != null && frag instanceof WifiCountdownFragment) {
+            setContentFragment(LoginFragment.class, true, null);
+        } else if (frag != null && !(frag instanceof LoginFragment)) {
+            Bundle args = new Bundle();
+            args.putString(PrefsConsts.FRAGMENT_ORIENTATION, "PORTRAIT");
+            setContentFragment(MenuFragment.class, true, args);
+        } else if (prefUtils.isAdminMode()) {
+            //allow back button in admin mode
+            super.onBackPressed();
+        }
+    }
+
+    private void connectDevice(String address) {
+        if (address != null) {
+            connectionHandler.connectToDevice(address);
+        } else {
+            L.e(TAG, "Show Invalid address Dialog or Device List again");
+            showScanDeviceListActivity();
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        MenuItem item = menu.findItem(R.id.menu_facode);
+        TextView tvFacilityCode = (TextView) item.getActionView();
+        int ddlFacilityPosition = prefs.getInt(PrefsConsts.LAST_SELECTED_FACILITY, 0);
+        String[] facilityNames = this.getResources().getStringArray(R.array.facility_keys);
+        String facilityName = null;
+        if (facilityNames != null)
+            facilityName = facilityNames[ddlFacilityPosition];
+        tvFacilityCode.setText(facilityName);
+        tvFacilityCode.setTextColor(Color.RED);
+        tvFacilityCode.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+        Utils.updateConnectionStatusIcon(menu, connectionHandler.getRingscannerConnectionState());
+        updateOrientationLockStatus(menu.findItem(R.id.action_lock_orientation));
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(final MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        boolean consumeEvent = false;
+        int id = item.getItemId();
+        if (id == R.id.action_bt_connect) {
+            if (prefUtils.isAdminMode()) {
+                Intent serverIntent = new Intent(this, DeviceListActivity.class);
+                startActivityForResult(serverIntent, REQUEST_BT_CONNECT);
+            } else {
+                String connectedDevice = prefs.getString(PrefsConsts.LAST_CONNECTED_DEVICE, "");
+                int connState = connectionHandler.getRingscannerConnectionState();
+                if (connState == BluetoothSPPConnection.STATE_CONNECTED) {
+                    mBus.post(new ShowToastEvent("Scanner connected: " + connectedDevice, ShowToastEvent.ToastDuration.LONG).setColor(ShowToastEvent.ToastColor.GREEN));
+                } else {
+                    if (connectedDevice != null && connectedDevice.length() > 0) {
+                        connectDevice(connectedDevice);
+                    } else {
+                        final String msg = getString(R.string.msg_not_conn_scanner_kiosk);
+                        mBus.post(new ShowToastEvent(msg, ShowToastEvent.ToastDuration.LONG).setColor(ShowToastEvent.ToastColor.RED));
+                        mBus.post(new TTSEvent(msg));
+                    }
+                }
+            }
+            consumeEvent = true;
+        } else if (id == R.id.action_lock_orientation) {
+            toggleOrientationLockStatus(item);
+            consumeEvent = true;
+        } else if (id == R.id.action_input) {
+            dlgUtils.showDialogEditText(this, getString(R.string.manual_input), getString(R.string.enter_barcode_here), false, getString(android.R.string.ok),
+                    new View.OnClickListener() {
+                        public void onClick(View v) {
+                            String value = dlgUtils.getInputText();
+                            Message msg = new Message();
+                            Bundle bundle = new Bundle();
+                            bundle.putByteArray(BluetoothSPPConnection.SPP_READ, value.getBytes());
+                            msg.setData(bundle);
+                            mBus.post(new RingReadEvent(msg));
+                        }
+                    });
+            consumeEvent = true;
+        } else if (item.getItemId() == R.id.action_reset) {
+            consumeEvent = true;
+       /* } else if (item.getItemId() == R.id.action_admin_mode) {
+            if (!item.isChecked()) {
+                dlgUtils.showDialogEditText(this, getString(R.string.admin_mode), getString(R.string.enter_password), true, getString(android.R.string.ok),
+                        new View.OnClickListener() {
+                            public void onClick(View v) {
+                                String value = dlgUtils.getInputText();
+                                if (value.equals("hiM6qsEP$s40")) {
+                                    prefUtils.activateAdminMode();
+                                    item.setChecked(ADMIN_MODE_ON);
+                                    final String msg = getString(R.string.admin_mode_activated);
+                                    bus.post(new ShowToastEvent(msg, ShowToastEvent.ToastDuration.SHORT).setColor(ShowToastEvent.ToastColor.GREEN));
+                                    bus.post(new TTSEvent(msg));
+                                } else {
+                                    final String msg = getString(R.string.incorrect_password);
+                                    bus.post(new ShowToastEvent(msg, ShowToastEvent.ToastDuration.SHORT).setColor(ShowToastEvent.ToastColor.RED));
+                                    bus.post(new TTSEvent(msg));
+                                }
+                            }
+                        });
+            } else {
+                prefUtils.deactivateAdminMode();
+                item.setChecked(ADMIN_MODE_OFF);
+            }
+            consumeEvent = true;  */
+        } else if (id == android.R.id.home) {
+            Fragment frag = getSupportFragmentManager().findFragmentById(R.id.content_frame);
+            if (!(frag instanceof LoginFragment)) {
+                Bundle args = new Bundle();
+                args.putString(PrefsConsts.FRAGMENT_ORIENTATION, "PORTRAIT");
+                setContentFragment(MenuFragment.class, true, args);
+            }
+        }
+        return consumeEvent;
+    }
+
+    private void toggleOrientationLockStatus(MenuItem item) {
+        isOrientationLocked = !isOrientationLocked;
+        updateOrientationLockStatus(item);
+    }
+
+    private void updateOrientationLockStatus(MenuItem item) {
+        if ("PORTRAIT".equalsIgnoreCase(fragmentOrientation)) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            item.setIcon(android.R.drawable.ic_lock_idle_lock);
+            return;
+        }
+        if ("LANDSCAPE".equalsIgnoreCase(fragmentOrientation)) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+            item.setIcon(android.R.drawable.ic_lock_idle_lock);
+            return;
+        }
+        if (isOrientationLocked) {
+            if (getResources().getConfiguration().orientation == 1) {
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            } else {
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+            }
+            item.setIcon(R.drawable.ic_locked);
+        } else {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
+            item.setIcon(R.drawable.ic_unlocked);
+        }
+    }
+
+    /**
+     * Subscribe method for Connection State change event for bluetooth device(Ringscanner)
+     *
+     * @param event event state
+     */
+    @Subscribe
+    public void handleRingConnectionState(RingStateChangeEvent event) {
+        L.d(TAG, "****onRingscanner State: " + event.getState());
+        Utils.updateConnectionStatusIcon(this.menu, connectionHandler.getRingscannerConnectionState());
+        switch (event.getState()) {
+            case BluetoothSPPConnection.STATE_CONNECTING:
+                outputPortHelper.showProgress(this, getString(R.string.connecting_progress));
+                break;
+            case BluetoothSPPConnection.STATE_CONNECTED:
+                outputPortHelper.hideProgress();
+                addConnectedDeviceToSharedPreference();
+                break;
+            case BluetoothSPPConnection.STATE_CONNECTION_FAILED:
+                connectionFailed();
+                break;
+            case BluetoothSPPConnection.STATE_NONE:
+                connectionLost();
+                break;
+            default:
+                outputPortHelper.hideProgress();
+                break;
+        }
+    }
+
+    private void connectionLost() {
+        prefs.edit().remove(PrefsConsts.LAST_SELECTED_DEVICE).apply();
+        outputPortHelper.hideProgress();
+        dlgUtils.showDialogPositive(this, getString(R.string.conn_lost), R.drawable.ic_warning_red, getString(android.R.string.ok), null, false);
+    }
+
+    private void connectionFailed() {
+        prefs.edit().remove(PrefsConsts.LAST_SELECTED_DEVICE).apply();
+        outputPortHelper.hideProgress();
+        dlgUtils.showDialogPositive(this, this.getString(R.string.conn_error_long), R.drawable.ic_warning_red, this.getString(android.R.string.yes), null, false);
+    }
+
+    /**
+     * start Progress dialog.
+     *
+     * @param event
+     */
+    @Subscribe
+    public void handleRefreshEvent(RefreshEvent event) {
+        outputPortHelper.showProgress(this, getString(R.string.connecting_progress));
+    }
+
+    private void showScanDeviceListActivity() {
+        Intent serverIntent = new Intent(this, DeviceListActivity.class);
+        serverIntent.setFlags(serverIntent.getFlags() | Intent.FLAG_ACTIVITY_NO_HISTORY);
+        startActivityForResult(serverIntent, REQUEST_BT_CONNECT);
+    }
+
+    private void addConnectedDeviceToSharedPreference() {
+        String lastSelectedDeviceAddress = prefs.getString(PrefsConsts.LAST_SELECTED_DEVICE, null);
+        // If no previous device was selected
+        if (lastSelectedDeviceAddress != null) {
+            prefs.edit().putString(PrefsConsts.LAST_CONNECTED_DEVICE, lastSelectedDeviceAddress).apply();
+            prefs.edit().remove(PrefsConsts.LAST_SELECTED_DEVICE).apply();
+            prefs.edit().remove(PrefsConsts.CONNECTED_DEVICE_NAME).apply();
+        } else {
+            lastSelectedDeviceAddress = prefs.getString(PrefsConsts.LAST_CONNECTED_DEVICE, null);
+        }
+        if (StringUtils.isNotBlank(prefs.getString(PrefsConsts.CONNECTED_DEVICE_NAME, null))) {
+            lastSelectedDeviceAddress = prefs.getString(PrefsConsts.CONNECTED_DEVICE_NAME, null);
+        }
+        mBus.post(new ShowToastEvent("Scanner connected: " + lastSelectedDeviceAddress, ShowToastEvent.ToastDuration.LONG).setColor(ShowToastEvent.ToastColor.GREEN));
+    }
+
+    private void turnOnBluetoothAutomatically() {
+        if (BuildConfig.BLUETOOTH_ON) {
+            BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            mBluetoothAdapter.enable();
+        }
+    }
+
+    private void turnOnWifiAutomatically() {
+        if (BuildConfig.WIFI_ON) {
+            final WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+            wifi.setWifiEnabled(true);
+        }
+    }
+
+
+}

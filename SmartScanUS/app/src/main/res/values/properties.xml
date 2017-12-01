@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="facility_keys">
+        <item>DIT DEN</item>
+        <item>DIT ORD</item>
+    </string-array>
+
+    <string-array name="facility_urls">
+        <item>usqasls4059.phx-dc.dhl.com|9001|true</item>
+        <item>usqasls4066.phx-dc.dhl.com|9001|false</item>
+    </string-array>
+
+</resources>

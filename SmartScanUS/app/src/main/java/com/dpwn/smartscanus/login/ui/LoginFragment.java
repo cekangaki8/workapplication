@@ -1,0 +1,236 @@
+package com.dpwn.smartscanus.login.ui;
+
+
+import android.app.ActionBar;
+import android.app.Fragment;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.res.Configuration;
+import android.graphics.Color;
+import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.Spinner;
+import android.widget.TextView;
+
+import com.daimajia.androidanimations.library.Techniques;
+import com.daimajia.androidanimations.library.YoYo;
+import com.dpwn.smartscanus.annotations.NewopsApp;
+import com.dpwn.smartscanus.dashboard.MenuFragment;
+//import com.dpwn.smartscanus.logging.Log4jHelper;
+import com.dpwn.smartscanus.newopsapi.NewOpsRestAdapter;
+import com.dpwn.smartscanus.utils.PrefsConsts;
+import com.google.inject.Inject;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.dpwn.smartscanus.R;
+import com.dpwn.smartscanus.events.ShowToastEvent;
+import com.dpwn.smartscanus.events.TTSEvent;
+import com.dpwn.smartscanus.interactor.IInteractorInputPort;
+import com.dpwn.smartscanus.interactor.async.AsyncInteractorFragment;
+import com.dpwn.smartscanus.logging.L;
+import com.dpwn.smartscanus.login.ILoginInputPort;
+import com.dpwn.smartscanus.login.ILoginOutputPort;
+
+import org.apache.commons.lang3.StringUtils;
+//import org.apache.log4j.Logger;
+
+import roboguice.inject.InjectView;
+
+/**
+ * A simple {@link Fragment} subclass.
+ */
+public class LoginFragment extends AsyncInteractorFragment implements ILoginOutputPort, AdapterView.OnItemSelectedListener {
+    private static final java.lang.String TAG = LoginFragment.class.getSimpleName();
+
+    @Inject
+    private ILoginInputPort interactor;
+
+    @Inject
+    NewOpsRestAdapter newOpsRestAdapter;
+
+
+    @InjectView(R.id.etLoginPass)
+    private EditText etLoginPass;
+
+    @InjectView(R.id.etLoginUser)
+    private EditText etLoginUser;
+
+    @InjectView(R.id.ddlFacility)
+    private Spinner ddlFacility;
+
+    @Inject
+    @NewopsApp
+    private String serverApp;
+
+    @Inject
+    private SharedPreferences prefs;
+
+    private String username;
+    private String password;
+
+    private ArrayAdapter<CharSequence> facilityDropDownAdapter;
+
+   // private Logger externalLog = Log4jHelper.getLogger(TAG);
+
+    public LoginFragment() {
+        // Required empty public constructor
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        ActionBar actionBar = getActivity().getActionBar();
+        try {
+            if (actionBar != null) {
+                actionBar.setDisplayHomeAsUpEnabled(false);
+                actionBar.setDisplayShowHomeEnabled(true);
+                actionBar.setDisplayShowTitleEnabled(false);
+            }
+        } catch (Exception ignored) {
+            L.e(TAG, "ex", ignored);
+        }
+        setHasOptionsMenu(true);
+
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+       // inflater.inflate(R.menu.reset, menu);
+        menu.removeItem(R.id.action_input);
+        menu.removeItem(R.id.menu_facode);
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        username = etLoginUser.getText().toString();
+        password = etLoginPass.getText().toString();
+        super.onConfigurationChanged(newConfig);
+        etLoginUser.setText(username);
+        etLoginPass.setText(password);
+        spinnerConfiguraion();
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        etLoginPass.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                InputMethodManager in = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+                in.hideSoftInputFromWindow(etLoginPass
+                                .getApplicationWindowToken(),
+                        InputMethodManager.HIDE_NOT_ALWAYS);
+                callLoginOnInteractor();
+                return true;
+            }
+
+        });
+        //Add drop down menu items
+        facilityDropDownAdapter = ArrayAdapter.createFromResource(
+                getActivity().getApplicationContext(),
+                R.array.facility_keys, android.R.layout.simple_spinner_item);
+        facilityDropDownAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
+        spinnerConfiguraion();
+        callLogoutApi();
+    }
+
+    /**
+     * This will call the logoutApi to invalidate the session if a valid session still exists.
+     */
+    private void callLogoutApi() {
+        if (StringUtils.isNotBlank(prefs.getString(PrefsConsts.JSESSIONID, ""))) {
+            interactor.doLogout();
+           // prefs.edit().putString(PrefsConsts.JSESSIONID, null).apply();
+        }
+    }
+
+    private void spinnerConfiguraion() {
+        ddlFacility.setAdapter(facilityDropDownAdapter);
+        ddlFacility.setOnItemSelectedListener(this);
+
+        //Put in the last facility selected
+        int ddlFacilityPosition = prefs.getInt(PrefsConsts.LAST_SELECTED_FACILITY, 0);
+        ddlFacility.setSelection(ddlFacilityPosition);
+    }
+
+    private void callLoginOnInteractor() {
+        interactor.doLogin(etLoginUser.getText().toString(), etLoginPass.getText().toString());
+    }
+
+    @Override
+    public List<IInteractorInputPort> getInteractors() {
+        ArrayList<IInteractorInputPort> interactors = new ArrayList<IInteractorInputPort>();
+        interactors.add(interactor);
+        return interactors;
+    }
+
+    @Override
+    public int getLayoutId() {
+        return R.layout.fragment_login;
+    }
+
+
+    @Override
+    public void onBarcodeRead(String barcode) {
+        dlgUtils.showDialogNegative(activity, getString(R.string.plz_login_first), R.drawable.ic_warning_yellow, getString(android.R.string.ok), null);
+    }
+
+    @Override
+    public void onClick(View view) {
+        if (view.getId() == R.id.btn_login) {
+            callLoginOnInteractor();
+        }
+    }
+
+    @Override
+    public void loginSuccessful() {
+        final String msg = "Successfully logged in SmartScan US";
+        bus.post(new TTSEvent(msg));
+        if (fragmentContainer != null) {
+            Bundle args = new Bundle();
+            args.putString(PrefsConsts.FRAGMENT_ORIENTATION, "PORTRAIT");
+            fragmentContainer.setContentFragment(MenuFragment.class, true, args);
+        }
+       // externalLog.info("Login sucessful test.");
+    }
+
+    @Override
+    public void loginNotSuccessful(String message) {
+        if (StringUtils.isBlank(message)){
+            message = "Login Error: Please check username or password.";
+        }
+        bus.post(new ShowToastEvent(message, ShowToastEvent.ToastDuration.LONG).setColor(ShowToastEvent.ToastColor.RED));
+        bus.post(new TTSEvent(message));
+        YoYo.with(Techniques.Shake).duration(700).playOn(etLoginPass);
+        YoYo.with(Techniques.Shake).duration(700).playOn(etLoginUser);
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view,
+                               int pos, long id) {
+        ((TextView) parent.getChildAt(0)).setTextColor(Color.BLACK);
+        String[] serverNames = this.getResources().getStringArray(R.array.facility_urls);
+        String[] serverConfig = StringUtils.split(serverNames[pos], "|");
+        newOpsRestAdapter.setServerApp(serverApp);
+       // newOpsRestAdapter.setServerName(serverConfig[0]);
+        newOpsRestAdapter.setServerNames(StringUtils.split(serverConfig[0], ","));
+        newOpsRestAdapter.setServerPort(serverConfig[1]);
+        newOpsRestAdapter.setSSLIsOn(Boolean.valueOf(serverConfig[2]));
+        prefs.edit().putInt(PrefsConsts.LAST_SELECTED_FACILITY, pos).apply();
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+
+    }
+}

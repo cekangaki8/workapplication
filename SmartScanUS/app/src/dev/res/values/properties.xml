@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="facility_keys">
+        <item>DIT DEN</item>
+        <item>DIT ORD</item>
+        <item>SIT FAC1</item>
+        <item>SIT FAC2</item>
+        <item>SIT FAC3</item>
+        <item>BAT CVG</item>
+        <item>BAT EWR</item>
+        <item>BAT ORD</item>
+    </string-array>
+
+    <string-array name="facility_urls">
+        <item>https://usqasls4059.phx-dc.dhl.com,http://usqasls4059.phx-dc.dhl.com|9002|true</item>
+        <item>https://usqasls4066.phx-dc.dhl.com,http://usqasls4066.phx-dc.dhl.com|7019|false</item>
+        <item>https://usqasls4088.phx-dc.dhl.com,http://usqasls4088.phx-dc.dhl.com|9001|false</item>
+        <item>https://usqasls4083.phx-dc.dhl.com,http://usqasls4083.phx-dc.dhl.com|9001|false</item>
+        <item>https://usqasls4084.phx-dc.dhl.com,http://usqasls4084.phx-dc.dhl.com|9001|false</item>
+        <item>https://usqasls4071.phx-dc.dhl.com,http://usqasls4071.phx-dc.dhl.com|9001|false</item>
+        <item>https://usqasls4072.phx-dc.dhl.com,http://usqasls4072.phx-dc.dhl.com|9001|false</item>
+        <item>https://usqasls4073.phx-dc.dhl.com,http://usqasls4073.phx-dc.dhl.com|9008|false</item>
+    </string-array>
+</resources>

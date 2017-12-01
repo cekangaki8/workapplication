@@ -1,0 +1,28 @@
+package com.dpwn.smartscanus.newopsapi.resources;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+/**
+ * Created by cekangak on 9/25/2015.
+ */
+public class LTReceptacleNestingResponseMsg extends Response{
+    /** Displays the count of receptacles associated to a given transport unit. */
+    private String ReceptacleCount;
+
+    /**
+     * Getter for the receptacleCount
+     * @return
+     */
+    @JsonProperty("ReceptacleCount")
+    public String getReceptacleCount() {
+        return ReceptacleCount;
+    }
+
+    /**
+     * Setter for receptacleCount.
+     * @param receptacleCount
+     */
+    public void setReceptacleCount(String receptacleCount) {
+        this.ReceptacleCount = receptacleCount;
+    }
+}

@@ -1,0 +1,228 @@
+
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:1.0.+'
+    }
+
+    apply plugin: 'android'
+    apply plugin: 'idea'
+    apply plugin: 'project-report'
+    apply plugin: 'sonar-runner'
+}
+
+idea {
+    module {
+        //download JavaDoc and sources jars
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 21
+    buildToolsVersion '21.1.2'
+
+    lintOptions {
+        quiet true
+        abortOnError true
+        ignoreWarnings true
+        checkAllWarnings true
+        warningsAsErrors true
+
+        enable 'RtlHardcoded', 'RtlCompat', 'RtlEnabled'
+        noLines true
+        showAll true
+        lintConfig rootProject.file('config/quality/lint/lint-default.xml')
+        textReport true
+        textOutput 'stdout'
+        htmlReport true
+        htmlOutput rootProject.file('reports/lint/smartscan-lint-report.html')
+    }
+
+    testOptions {
+        reportDir = "$rootDir/reports"
+    }
+
+    defaultConfig {
+        applicationId "com.dpwn.smartscanus"
+        minSdkVersion 15
+        targetSdkVersion 19
+        versionCode 3
+        versionName "0.0.5"
+        testApplicationId 'com.dpwn.smartscanus.test'
+        testInstrumentationRunner 'android.test.InstrumentationTestRunner'
+
+        // default config fields
+        resValue "string", "app_name", "Smart Scan US"
+        resValue "color", "default_background", "#ffcc00"
+        buildConfigField "boolean", "BLUETOOTH_ON", 'true'
+        buildConfigField "boolean", "SSL_ON", 'false'
+        buildConfigField "String", "HOST", '"dit-core2db-den.dhlglobalmail.corp"'
+        buildConfigField "String", "PORT", '"9015"'
+        buildConfigField "String", "APP", '"mobilegateway"'
+        buildConfigField "boolean", "WIFI_ON", 'true'
+        buildConfigField "boolean", "IS_PRODUCTION", 'false'
+
+    }
+    productFlavors {
+        ci {
+            applicationId "com.dpwn.smartscanus.ci"
+            resValue "string", "app_name", "CI SmartScanUS"
+            resValue "color", "default_background", "#30b8ff"
+            buildConfigField "boolean", "BLUETOOTH_ON", 'false'
+            buildConfigField "String", "HOST", '"dit-core2db-den.dhlglobalmail.corp"'
+            buildConfigField "String", "PORT", '"9015"'
+            buildConfigField "String", "APP", '"mobilegateway/mock"'
+        }
+
+        // application development server
+        dev {
+            applicationId "com.dpwn.smartscanus.dev"
+            resValue "string", "app_name", "DEV SmartScanUS"
+            resValue "color", "default_background", "#80811D"
+            buildConfigField "boolean", "BLUETOOTH_ON", 'true'
+            buildConfigField "String", "HOST", '"dit-core2db-den.dhlglobalmail.corp"'
+            buildConfigField "String", "PORT", '"9015"'
+            buildConfigField "String", "APP", '"mobilegateway"'
+        }
+
+        // production
+        prod {
+            applicationId "com.dpwn.smartscanus.prod"
+            resValue "string", "app_name", "SmartScanUS"
+            buildConfigField "boolean", "SSL_ON", 'false'
+            buildConfigField "String", "HOST", '"atlappnops1.dhlglobalmail.corp"'
+            buildConfigField "String", "PORT", '"9001"'
+            buildConfigField "String", "APP", '"mobilegateway"'
+        }
+    }
+
+    packagingOptions {
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/ASL2.0'
+        exclude 'LICENSE.txt' //junit library
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+        }
+        release {
+            minifyEnabled false
+
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.each { output ->
+            def apk = output.outputFile
+
+
+            def newName
+
+            newName = apk.name.replace("app","smartscanus").replace("debug", "").replace(".apk", versionName + ".apk");
+
+            output.outputFile = new File(apk.parentFile, newName);
+        }
+    }
+}
+
+dependencies {
+    compile 'com.google.inject:guice:4.0-beta:no_aop'
+    compile 'org.roboguice:roboguice:2.0'
+    compile 'com.fasterxml.jackson.core:jackson-core:2.4.2'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.4.2'
+    compile 'com.fasterxml.jackson.core:jackson-annotations:2.3.4'
+    compile 'com.google.code.gson:gson:2.3'
+    compile 'com.netflix.rxjava:rxjava-android:0.20.4'
+    compile 'com.squareup.retrofit:retrofit:1.6.1'
+    compile 'com.squareup.okhttp:okhttp-urlconnection:2.0.0'
+    compile 'com.squareup.okhttp:okhttp:2.0.0'
+    compile "com.android.support:support-v4:21.0.3"
+    compile 'com.github.johnpersano:supertoasts:1.3.4@aar'
+    compile 'com.nineoldandroids:library:2.4.0'
+    compile 'com.daimajia.easing:library:1.0.1@aar'
+    compile 'com.daimajia.androidanimations:library:1.1.3@aar'
+    compile 'org.apache.commons:commons-lang3:3.4'
+    compile 'com.android.support:appcompat-v7:19.1.+'
+
+    //Logging dependencies
+    compile 'com.orhanobut:logger:1.4'
+    //compile 'de.mindpipe.android:android-logging-log4j:1.0.3'
+    //compile 'log4j:log4j:1.2.17'
+
+
+    androidTestCompile 'org.mockito:mockito-core:1.0'
+    androidTestCompile 'com.google.dexmaker:dexmaker:1.0'
+    androidTestCompile 'com.google.dexmaker:dexmaker-mockito:1.0'
+    androidTestCompile('com.squareup:fest-android:1.0.8') {
+        exclude module: 'support-v4'
+    }
+   // androidTestCompile 'com.jayway.android.robotium:robotium-solo:5.2.1'
+    androidTestCompile 'com.jayway.android.robotium:robotium:5.4.1'
+    androidTestCompile 'com.jayway.android.robotium:robotium-solo:5.4.1'
+    androidTestCompile 'org.fitnesse:fitlibrary:20080812'
+    testCompile 'junit:junit:4.12'
+
+
+
+    androidTestCompile('com.squareup.retrofit:retrofit-mock:1.6.1') {
+        exclude module: 'retrofit'
+    }
+    //    androidTestCompile 'com.squareup:fest-android:1.0.8'
+    compile 'com.android.support:support-v4:21.0.3'
+    compile 'com.squareup:otto:1.3.5'
+}
+
+sonarRunner {
+    sonarProperties {
+        def grgit = Grgit.open('../.git')
+        def tag = grgit.branch.current.name
+        def idx = tag.lastIndexOf("GBM")
+        if (idx == -1) {
+            tag = rootDir.getParent()
+        }
+        tag = tag.substring(tag.lastIndexOf("GBM"))
+        def projectKey = "GBM_ANDROID-" + tag
+        def projectLink = "http://192.168.60.230:9000/dashboard/index/" + projectKey
+        def sonarReportFile = new File("reports/sonar")
+
+        if (sonarReportFile.mkdirs()) {
+            def htmlFile = new File("reports/sonar/index.html")
+            PrintWriter printWriter = new PrintWriter(htmlFile)
+            printWriter.println("<head><meta http-equiv=\"refresh\" content=\"0; url=$projectLink\" /></head>")
+            printWriter.close()
+        }
+        property "sonar.projectKey", projectKey
+        property "sonar.projectName", "SS-" + tag
+        property "sonar.projectVersion", "$android.defaultConfig.versionName"
+
+        properties["sonar.host.url"] = "http://192.168.60.230:9000"
+        properties["sonar.jdbc.url"] = "jdbc:mysql://192.168.60.230:3306/sonar"
+        properties["sonar.jdbc.driverClassName"] = "com.mysql.jdbc.Driver"
+        properties["sonar.jdbc.username"] = "sonar"
+        properties["sonar.jdbc.password"] = "sonar"
+
+        properties["sonar.sourceEncoding"] = "UTF-8"
+        properties["sonar.java.coveragePlugin"] = "android"
+
+        properties["sonar.language"] = "java"
+        // Additional parameters
+
+        properties["sonar.sources"] = android.sourceSets.main.java.srcDirs
+        properties["sonar.tests"] = android.sourceSets.androidTest.java.srcDirs
+        properties["sonar.binaries"] = file("build/intermediates/classes/debug")
+    }
+}

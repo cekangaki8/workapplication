@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:ignore="RtlCompat,RtlHardcoded,RtlSymmetry,ContentDescription"
+    android:clickable="false">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="150dp"
+        android:id="@+id/ll_NextDayImage">
+        <ImageView
+            android:id="@+id/img_nextdayscan"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_alignParentTop="true"
+            android:layout_centerInParent="true"
+            android:layout_gravity="center"
+
+            android:src="@drawable/samedayscanning" />
+
+    </LinearLayout>
+
+
+
+    <EditText
+        android:id="@+id/tvNextDayScannedBarcode"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_below="@+id/ll_NextDayImage"
+        android:layout_alignParentBottom="true"
+        android:layout_centerInParent="true"
+        android:gravity="center"
+        android:textSize="18sp"
+        android:hint="Scan Baracode"
+        android:editable="false"
+        android:background="@drawable/apptheme_textfield_default_holo_dark"
+        />
+
+    <TextView
+        android:id="@+id/tvNextDayMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/tvNextDayScannedBarcode"
+        android:layout_alignParentBottom="true"
+        android:layout_centerInParent="true"
+        android:gravity="center"
+        android:textSize="18sp"/>
+
+
+</LinearLayout>

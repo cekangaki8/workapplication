@@ -1,0 +1,159 @@
+package com.dpwn.smartscanus.transport.ui;
+
+import android.content.res.Configuration;
+import android.graphics.Color;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import com.dpwn.smartscanus.R;
+import com.dpwn.smartscanus.events.RingBeepEvent;
+import com.dpwn.smartscanus.events.VibrateEvent;
+import com.dpwn.smartscanus.interactor.IInteractorInputPort;
+import com.dpwn.smartscanus.interactor.async.AsyncInteractorFragment;
+import com.dpwn.smartscanus.logging.L;
+import com.dpwn.smartscanus.newopsapi.resources.MessageResponse;
+import com.dpwn.smartscanus.transport.ILoadTransportOutputPort;
+import com.dpwn.smartscanus.transport.ITUNestingInputPort;
+import com.dpwn.smartscanus.transport.LoadTranportConstants;
+import com.dpwn.smartscanus.utils.PrefsConsts;
+import com.google.inject.Inject;
+
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import roboguice.inject.InjectView;
+
+/**
+ * Created by cekangak on 9/24/2015.
+ */
+public class ScanReceptactleIntoTuFragment extends AsyncInteractorFragment implements ILoadTransportOutputPort {
+    private static final java.lang.String TAG = ScanReceptactleIntoTuFragment.class.getSimpleName();
+
+    @Inject
+    ITUNestingInputPort interactor;
+
+    @InjectView(R.id.ll_LoadTuScanReceptacleMsg)
+    LinearLayout loadReceptacleMessage;
+
+    @InjectView(R.id.tv_lt_active_tu)
+    TextView tvActiveTransportUnit;
+
+    @InjectView(R.id.tvLoadTransportTUNumber)
+    TextView tvReceptacleNumber;
+
+    @InjectView(R.id.tv_ScanReceptacle_ErrorMessage)
+    private TextView tvErrorMessage;
+
+    @InjectView(R.id.btn_returntu)
+    private Button btnRetunToTu;
+
+    @InjectView(R.id.tv_receptacle_count)
+    private TextView tvReceptacleCount;
+
+    private String activeTransportUnit;
+
+    private String receptacleCount;
+
+
+    @Override
+    public List<IInteractorInputPort> getInteractors() {
+        ArrayList<IInteractorInputPort> interactors = new ArrayList<IInteractorInputPort>();
+        interactors.add(interactor);
+        return interactors;
+    }
+
+    @Override
+    public void onBarcodeRead(String barcode) {
+        if (outputPortHelper.isInProgress()) {
+            tts("Please wait while in progress");
+        } else {
+            if (isTransportUnit(barcode)) {
+                returnToTu(barcode);
+            } else {
+                tvReceptacleNumber.setText(barcode);
+                interactor.processReceptacleToTU(activeTransportUnit, barcode);
+            }
+        }
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        btnRetunToTu.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        L.d("Clicked on return to TU");
+                        String emptyTuNumber = null;
+                        returnToTu(emptyTuNumber);
+                    }
+                }
+        );
+        if (this.getArguments() != null) {
+            activeTransportUnit = this.getArguments().getString(LoadTranportConstants.TU_NUMBER);
+            tvActiveTransportUnit.setText(activeTransportUnit);
+        }
+    }
+
+    @Override
+        public void onConfigurationChanged(Configuration newConfig){
+            super.onConfigurationChanged(newConfig);
+        tvActiveTransportUnit.setText(activeTransportUnit);
+        tvReceptacleCount.setText(receptacleCount);
+        btnRetunToTu.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        L.d("Clicked on return to TU");
+                        String emptyTuNumber = null;
+                        returnToTu(emptyTuNumber);
+                    }
+                }
+        );
+    }
+
+    private void returnToTu(String transportUnit) {
+        Bundle args = null;
+        if (StringUtils.isNotBlank(transportUnit)) {
+            args = new Bundle();
+            args.putString(LoadTranportConstants.TU_NUMBER, transportUnit);
+        }
+        fragmentContainer.setContentFragment(ScanTransportUnitFragment.class, true, args);
+    }
+
+    @Override
+    public int getLayoutId() {
+        return R.layout.fragment_loadtransport_scanreceptacle;
+    }
+
+    @Override
+    public void onClick(View view) {
+        view.getId();
+    }
+
+    @Override
+    public void scanProcessedSuccessfully(MessageResponse msg) {
+        loadReceptacleMessage.setBackgroundColor(Color.GREEN);
+        tvErrorMessage.setText(msg.getMsg());
+        receptacleCount = msg.getParameterValues().get(LoadTranportConstants.RECEPTACLE_COUNT);
+        tvReceptacleCount.setText(receptacleCount);
+    }
+
+    @Override
+    public void scanProcessingError(MessageResponse msg) {
+        loadReceptacleMessage.setBackgroundColor(Color.RED);
+        tvErrorMessage.setText(msg.getMsg());
+        bus.post(new VibrateEvent(PrefsConsts.VIB_DURATION));
+        tts(msg.getMsg());
+        bus.post(new RingBeepEvent());
+    }
+
+    private boolean isTransportUnit(String barcode) {
+        return StringUtils.startsWith(barcode, "99M");
+    }
+}

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout style="@style/sub_heading">
+        <TextView
+            style="@style/sub_heading_text"
+            android:text="@string/tvLoadTransportScanTuLabelLand"
+            android:id="@+id/tvLoadTransportScanTuLabel"
+            android:textAppearance="?android:attr/textAppearanceLarge"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:id="@+id/tvLoadTransportTUNumber"
+            android:gravity="center"
+            android:paddingTop="15dp"
+            android:paddingBottom="10dp"
+            android:hint="SCAN TRANSPORT UNIT"/>
+
+    </LinearLayout>
+
+    <LinearLayout android:orientation="horizontal"
+        android:layout_height="fill_parent"
+        android:layout_width="fill_parent">
+        <LinearLayout android:layout_weight="1"
+            android:layout_height="fill_parent"
+            android:layout_width="fill_parent">
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/ivDhlTruck"
+                android:layout_gravity="center_vertical"
+                android:src="@drawable/img_dhl_truck"/>
+        </LinearLayout>
+
+
+        <LinearLayout android:layout_weight="1"
+            android:layout_height="fill_parent"
+            android:layout_width="fill_parent"
+            android:background="@color/light_gray"
+            android:id="@+id/ll_LoadTuMessagePane">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:id="@+id/tv_LT_ErrorMessage"
+                android:gravity="center"
+                android:layout_gravity="center_vertical"
+                android:singleLine="false" />
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

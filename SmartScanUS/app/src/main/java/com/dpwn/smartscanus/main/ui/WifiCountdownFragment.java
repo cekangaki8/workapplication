@@ -1,0 +1,128 @@
+package com.dpwn.smartscanus.main.ui;
+
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.RotateAnimation;
+import android.widget.ProgressBar;
+
+import com.dpwn.smartscanus.R;
+import com.dpwn.smartscanus.dashboard.MenuFragment;
+import com.dpwn.smartscanus.deliverynetwork.ui.ScanMailItemFragment;
+import com.dpwn.smartscanus.dspscanning.ui.DspScanningFragment;
+import com.dpwn.smartscanus.events.RingBeepEvent;
+import com.dpwn.smartscanus.events.ShowToastEvent;
+import com.dpwn.smartscanus.events.TTSEvent;
+import com.dpwn.smartscanus.events.VibrateEvent;
+import com.dpwn.smartscanus.fullServiceImb.ui.ScanFullSvcIMBFragment;
+import com.dpwn.smartscanus.logging.L;
+
+import com.dpwn.smartscanus.login.ui.LoginFragment;
+import com.dpwn.smartscanus.transport.ui.ScanTransportUnitFragment;
+import com.dpwn.smartscanus.utils.PrefsConsts;
+import com.dpwn.smartscanus.utils.ui.ScannerFragment;
+
+import org.apache.commons.lang3.StringUtils;
+
+import roboguice.inject.InjectView;
+
+/**
+ * Created by cekangak on 8/5/2015.
+ */
+public class WifiCountdownFragment extends ScannerFragment {
+
+    private static final String TAG = WifiCountdownFragment.class.getCanonicalName();
+    private String prevArgument;
+    private CountDownTimer countDownTimer;
+    private boolean isCountingDown;
+
+    @InjectView(R.id.barTimer)
+    private ProgressBar circularTimer;
+
+
+    public WifiCountdownFragment() {
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        prevArgument = this.getArguments().getString("previousFragment");
+        L.d("Wifi signal has been lost.");
+        String msg = "WIFI signal has been lost.";
+        bus.post(new TTSEvent(msg));
+        bus.post(new ShowToastEvent(msg, ShowToastEvent.ToastDuration.LONG).setColor(ShowToastEvent.ToastColor.RED));
+        isCountingDown = true;
+
+        Animation an = new RotateAnimation(0.0f, 90.0f, 250f, 273f);
+        an.setFillAfter(true);
+        circularTimer.startAnimation(an);
+
+        final ConnectivityManager connMgr = (ConnectivityManager)
+                getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        countDownTimer = new CountDownTimer(circularTimer.getMax() * 1000, 1000) {
+
+            @Override
+            public void onTick(long l) {
+                int seconds = (int)l / 1000;
+                circularTimer.setProgress(circularTimer.getMax() + 1 - seconds);
+                NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+                if (isCountingDown && networkInfo != null && networkInfo.isConnected()) {
+                    isCountingDown = false;
+                    returnToFragment();
+                }
+            }
+
+            @Override
+            public void onFinish() {
+                if (isCountingDown)
+                    fragmentContainer.setContentFragment(LoginFragment.class, true, null);
+            }
+        }.start();
+    }
+
+    @Override
+    public int getLayoutId() {
+        return R.layout.fragment_wifi_lost;
+    }
+
+
+    @Override
+    public void onClick(View view) {
+
+    }
+
+    @Override
+    public void onBarcodeRead(String barcode) {
+      //  dlgUtils.showDialogPositive(getActivity(), this.getString(R.string.error_scan_mode_not_active), R.drawable.ic_warning_yellow, this.getString(android.R.string.yes),null, false);
+        bus.post(new VibrateEvent(500l));
+        bus.post(new RingBeepEvent());
+        bus.post(new TTSEvent("The WIFI signal strength is poor. Please wait for an active signal."));
+        bus.post(new ShowToastEvent("No WIFI Signal", ShowToastEvent.ToastDuration.LONG).setColor(ShowToastEvent.ToastColor.RED));
+    }
+
+    private void returnToFragment() {
+        countDownTimer.cancel();
+        if (StringUtils.isNotBlank(prevArgument) && "Dashboard".equalsIgnoreCase(prevArgument)) {
+            Bundle args = new Bundle();
+            args.putString(PrefsConsts.FRAGMENT_ORIENTATION, "PORTRAIT");
+            fragmentContainer.setContentFragment(MenuFragment.class, true, args);
+        } else if (StringUtils.isNotBlank(prevArgument) && "ScanFullSvcIMBFragment".equalsIgnoreCase(prevArgument)) {
+            fragmentContainer.setContentFragment(ScanFullSvcIMBFragment.class, true, null);
+        } else if (StringUtils.isNotBlank(prevArgument) && "DspScanningFragment".equalsIgnoreCase(prevArgument)) {
+            fragmentContainer.setContentFragment(DspScanningFragment.class, true, null);
+        } else if (StringUtils.isNotBlank(prevArgument) && "LoadTUFragment".equalsIgnoreCase(prevArgument)) {
+            fragmentContainer.setContentFragment(ScanTransportUnitFragment.class, true, null);
+        } else if (StringUtils.isNotBlank(prevArgument) && "ScanMailItemFragment".equalsIgnoreCase(prevArgument)) {
+            fragmentContainer.setContentFragment(ScanMailItemFragment.class, true, null);
+        } else {
+            fragmentContainer.setContentFragment(LoginFragment.class, true, null);
+        }
+    }
+
+}

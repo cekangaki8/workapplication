@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <GridView xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/gvMenuItem"
+        android:numColumns="2"
+        android:gravity="center"
+        android:columnWidth="100dp"
+        android:stretchMode="columnWidth"
+        android:layout_width="fill_parent"
+        android:layout_height="400sp"
+        android:horizontalSpacing="1dp"
+        android:verticalSpacing="5dp"
+        android:layout_marginTop="2dp">
+
+    </GridView>
+
+    <LinearLayout
+        android:id="@+id/view3"
+        android:orientation="horizontal"
+        android:layout_weight="1"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@drawable/btn_load_transport"
+        android:clickable="false"
+        android:focusable="false"
+        >
+    </LinearLayout>
+
+
+    <Button
+        android:id="@+id/btn_mainfrg_logout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAllCaps="true"
+        android:textStyle="bold"
+        android:text="@string/log_out"
+        android:onClick="onClick"
+        android:textColor="@android:color/white"
+        android:background="@drawable/btn_log_out" />
+
+    <View
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        android:background="@android:color/darker_gray"
+        android:layout_marginLeft="60dp"
+        android:layout_marginRight="60dp" />
+
+
+</LinearLayout>
+

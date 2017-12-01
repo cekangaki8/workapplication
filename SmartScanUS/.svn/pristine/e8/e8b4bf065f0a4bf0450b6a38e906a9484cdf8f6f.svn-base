@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="action_finish">Finish</string>
+    <string name="smart_scan">Smart Scan</string>
+    <string name="connected_device">Connected with</string>
+    <string name="select_device">Select a device to connect</string>
+    <string name="none_paired">No scanner is connected</string>
+    <string name="none_found">No bluetooth devices found</string>
+    <string name="title_paired_devices">Last connected scanners</string>
+    <string name="title_other_devices">Devices found</string>
+    <string name="button_scan">Tap to search for scanners</string>
+    <string name="action_scanner">Scanner</string>
+    <string name="username">Username</string>
+    <string name="pass">Password</string>
+    <string name="call_web_api">Call Web Api</string>
+    <string name="user_id">User Id</string>
+    <string name="login">Login</string>
+    <string name="dialog_turn_on_wifi">WiFi is off. WiFi is required to function!</string>
+    <string name="log_out">Log out</string>
+    <string name="load_transport">IMB Full Service</string>
+    <string name="quarantine">Quarantine</string>
+
+    <string name="conn_error_long">Cannot connect to the ring scanner. Please try again.</string>
+    <string name="conn_error_ringscanner">Ring scanner is not configured properly! Please reconfigure the ring scanner.</string>
+    <string name="load_mode_activated">Load mode activated</string>
+    <string name="please_wait_dots">Please wait…</string>
+    <string name="active_transport">Active Transport</string>
+    <string name="trans_barcode_1">99M8896300778923546865</string>
+    <string name="last_receptacle_reg">Last receptacle registered</string>
+    <string name="receptacle_barcode_1">CLSCLATRISTAAUZ40014004100055</string>
+    <string name="max_weight_in_kg">Max. Weight Limit %1$.2f Kg</string>
+    <string name="current_payload_in_kg">%1$.2f Kg</string>
+    <string name="nr_of_pcs">%1$d Pcs</string>
+    <string name="min_weight_in_kg">Minimum Weight %1$.2f Kg</string>
+
+
+    <string name="dialog_cancel">Cancel</string>
+    <string name="dialog_new_transport">Start new transport</string>
+    <string name="dialog_maximum_payload">Maximum payload level reached</string>
+    <string name="customizeddialog">customizedDialog</string>
+    <string name="plz_scan_receptacle">Please scan a receptacle to quarantine</string>
+    <string name="receptacle_found">Receptacle found</string>
+    <string name="receptacle_quarantined_successfully">Receptacle quarantined successfully</string>
+    <string name="receptacle_already_quarantined">Receptacle already quarantined</string>
+    <string name="receptacle_ready_quarantine">Receptacle ready for quarantine!</string>
+    <string name="receptacle_barcode">Receptacle Barcode</string>
+    <string name="destinationCountry">Destination</string>
+    <string name="usa">USA</string>
+    <string name="serial_number">Serial number</string>
+    <string name="weight">Weight</string>
+    <string name="origin_country">Origin country</string>
+    <string name="origin_post">Origin Post</string>
+    <string name="destination_country">Destination country</string>
+    <string name="destination_post">Destination post</string>
+    <string name="dispatch_number">Dispatch number</string>
+    <string name="year_of_dispatch">Year of dispatch</string>
+    <string name="user">User</string>
+    <string name="transportstatus">Status</string>
+    <string name="time">Time</string>
+    <string name="history">History</string>
+    <string name="finish_transport_question">Do you want to finish this transport?</string>
+    <string name="transport_cannot_be_activated">Transport cannot be activated</string>
+    <string name="transport_not_found_msg">Scanned transport transportbarcode is not found. Please try again.</string>
+
+    <string name="actionbar_title_home">HOME</string>
+    <string name="error_scan_mode_not_active">Please select the scan mode before you start scanning</string>
+
+
+    <string name="scanning">scanning for devices…</string>
+    <string name="dialog_turn_off_bluetooth">Bluetooth is turned off. Bluetooth is required to function!</string>
+    <string name="noInternetConnection">Please check your internet connection or try again later</string>
+
+    <string name="plz_wait_while_in_prg">Please wait while in progress</string>
+    <string name="receptacle_not_found">Receptacle not found</string>
+    <string name="start_new_transport">Start new Transport</string>
+    <string name="max_payload_reached">Maximum payload weight limit of transport reached</string>
+    <string name="recv_not_allowed_for_current_dest">This receiver is not allowed for the current destination country</string>
+    <string name="receptacle_not_inbound">Receptacle has not been inbound scanned</string>
+    <string name="receptacle_already_outbound">Receptacle has already had an outbound scan</string>
+    <string name="invalid_barcode_scanned">Invalid barcode for outbound scan</string>
+    <string name="trans_cannot_finished_question">Transport cannot be finished. Do you want to try again?</string>
+    <string name="receptacle_quarantined">Receptacle is placed in Quarantine</string>
+    <string name="barcode_cannot_quarantined">This transportbarcode cannot be quarantined</string>
+    <string name="transport_not_activated_question">This transport is not activated. Please active the transport first.</string>
+
+    <string name="action_reset">Reset data</string>
+    <string name="conn_lost">Connection lost to the ring scanner.</string>
+    <string name="scanner_alrdy_connected">Selected scanner is already connected</string>
+    <string name="yes_log_out">Yes, Log out</string>
+    <string name="yes_finish">Yes, Finish Transport</string>
+    <string name="plz_connect_scanner">"Please select a scanner from the menu"</string>
+    <string name="turning_bl_on">Turning bluetooth on …</string>
+    <string name="turning_wifi_on">Turning WiFi on …</string>
+    <string name="connecting_progress">Connecting …</string>
+    <string name="action_manual_input">Manual Input</string>
+    <string name="action_lock">Lock</string>
+    <string name="reason">Reason</string>
+    <string name="invalid_receptacle_scanned">Invalid receptacle scanned!</string>
+    <string name="plz_quarantine_details_below">Please enter quarantine details below:</string>
+    <string name="msg_not_conn_scanner_kiosk">No scanner is paired yet. Please contact your supervisor.</string>
+    <string name="password">Password</string>
+    <string name="admin_mode">Admin Mode</string>
+
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="do_u_want_logout">Do you want to Logout?</string>
+    <string name="manual_input">Manual Input</string>
+    <string name="enter_barcode_here">Enter Barcode Here</string>
+    <string name="enter_password">Enter Password</string>
+    <string name="admin_mode_activated">Admin mode activated</string>
+    <string name="incorrect_password">Incorrect Password</string>
+    <string name="plz_login_first">Please login first!</string>
+    <string name="initializing">Initializing…</string>
+    <string name="power_off">Power off</string>
+    <string name="prepare_for_quarantine">Prepare for Quarantine</string>
+    <string name="quarantine_now">Quarantine now!</string>
+    <string name="tvLoadTransportScanTuLabel">Load Transport Unit</string>
+    <string name="tvLoadTransportScanTuLabelLand">Load Transport Unit (Scan TU)</string>
+</resources>

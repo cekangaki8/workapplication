@@ -1,0 +1,111 @@
+package com.dpwn.smartscanus.dashboard;
+
+import android.app.ActionBar;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.GridView;
+import android.widget.TextView;
+
+import com.dpwn.smartscanus.R;
+import com.dpwn.smartscanus.deliverynetwork.ui.ScanMailItemFragment;
+import com.dpwn.smartscanus.dspscanning.ui.DspScanningFragment;
+import com.dpwn.smartscanus.fullServiceImb.ui.ScanFullSvcIMBFragment;
+import com.dpwn.smartscanus.logging.L;
+import com.dpwn.smartscanus.transport.ui.ScanReceptactleIntoTuFragment;
+import com.dpwn.smartscanus.transport.ui.ScanTransportUnitFragment;
+import com.dpwn.smartscanus.utils.MenuElements;
+import com.dpwn.smartscanus.utils.ui.MenuItemAdapter;
+import com.dpwn.smartscanus.utils.ui.ScannerFragment;
+
+import java.util.ArrayList;
+import java.util.List;
+
+
+/**
+ * Created by cekangak on 9/15/2015.
+ */
+public class MenuFragment extends ScannerFragment {
+
+    private static final String TAG = MenuFragment.class.getSimpleName();
+    private static final String MENU_FSIMB = "MENU_FSIMB";
+    private static final String MENU_DSP_SCANNING = "MENU_DSP_SCANNING";
+    private static final String MENU_TU_RECEPTACLE_NESTING = "MENU_TU_RECEPTACLE_NESTING";
+    private static final String MENU_SCAN_MAILITEM = "MENU_SCAN_MAILITEM";
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        try {
+            ActionBar actionBar = getActivity().getActionBar();
+            if (actionBar != null) {
+                actionBar.setDisplayHomeAsUpEnabled(false);
+                actionBar.setDisplayShowHomeEnabled(true);
+                actionBar.setDisplayShowTitleEnabled(false);
+            }
+        } catch (Exception ignored) {
+            L.e(TAG, "ex", ignored);
+        }
+        setHasOptionsMenu(false);
+    }
+
+    @Override
+    public void onBarcodeRead(String barcode) {
+        dlgUtils.showDialogPositive(getActivity(), this.getString(R.string.error_scan_mode_not_active),
+                R.drawable.ic_warning_yellow, this.getString(android.R.string.yes),null, false);
+    }
+
+    @Override
+    public int getLayoutId() {
+        return R.layout.fragment_menu;
+    }
+
+    @Override
+    public void onClick(View view) {
+        int id = view.getId();
+        if (id == R.id.btn_mainfrg_logout) {
+            // call here logout api
+            dlgUtils.showHideLogoutDialog(getActivity(), fragmentContainer, true);
+        }
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        GridView gridView = (GridView) view.findViewById(R.id.gvMenuItem);
+
+        gridView.setAdapter(new MenuItemAdapter(this.getActivity(), createMenuElements()));
+        gridView.setOnItemClickListener(
+                new AdapterView.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+                        String strId = String.valueOf(((TextView) view.findViewById(R.id.etNextFragmentId)).getText());
+                        if (MENU_FSIMB.equalsIgnoreCase(strId)) {
+                            fragmentContainer.setContentFragment(ScanFullSvcIMBFragment.class, true, null);
+                        } else if (MENU_DSP_SCANNING.equalsIgnoreCase(strId)) {
+                            fragmentContainer.setContentFragment(DspScanningFragment.class, true, null);
+                        } else if (MENU_TU_RECEPTACLE_NESTING.equalsIgnoreCase(strId)) {
+                            fragmentContainer.setContentFragment(ScanTransportUnitFragment.class, true, null);
+                        } else if (MENU_SCAN_MAILITEM.equalsIgnoreCase(strId)) {
+                            fragmentContainer.setContentFragment(ScanMailItemFragment.class, true, null);
+                        }
+                    }
+                }
+        );
+
+    }
+
+    private List<MenuElements> createMenuElements() {
+        List<MenuElements> menuElementsList = new ArrayList<>();
+        menuElementsList.add(new MenuElements(R.drawable.fullservice, "MAIL.DAT", "Full service IMB. \n" +
+                " Tray/Container scanning.", MENU_FSIMB));
+        menuElementsList.add(new MenuElements(R.drawable.dspscanning, "DSP Scanning", "Expedited Max, PSND. \n" +
+                " Piece to Bag Scanning.", MENU_DSP_SCANNING));
+        menuElementsList.add(new MenuElements(R.drawable.loadtransport, "Load TU", "Sack Quality, Scan TU, "
+                +"Scan Sack, Sort Sack",
+                MENU_TU_RECEPTACLE_NESTING));
+        menuElementsList.add(new MenuElements(R.drawable.barcode_scanner, "Scan Mailitem", "DN Receive scan " +
+                "mailitems at destination.", MENU_SCAN_MAILITEM));
+        return menuElementsList;
+    }
+}

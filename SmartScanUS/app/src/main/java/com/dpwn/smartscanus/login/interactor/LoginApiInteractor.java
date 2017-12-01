@@ -1,0 +1,190 @@
+package com.dpwn.smartscanus.login.interactor;
+
+import android.content.SharedPreferences;
+
+import com.dpwn.smartscanus.newopsapi.IAuthenticationApi;
+import com.dpwn.smartscanus.newopsapi.NewOpsRestAdapter;
+import com.dpwn.smartscanus.newopsapi.resources.LoginApiRequest;
+import com.dpwn.smartscanus.newopsapi.resources.LoginProperties;
+import com.dpwn.smartscanus.utils.PrefsConsts;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Inject;
+
+import com.dpwn.smartscanus.interactor.IInteractorOutputPort;
+import com.dpwn.smartscanus.interactor.async.AbstractAsyncInteractor;
+import com.dpwn.smartscanus.logging.L;
+import com.dpwn.smartscanus.login.ILoginInputPort;
+import com.dpwn.smartscanus.login.ILoginOutputPort;
+
+import org.apache.commons.lang3.StringUtils;
+
+import java.io.IOException;
+import java.util.List;
+
+import retrofit.RetrofitError;
+import retrofit.client.Header;
+import retrofit.client.Response;
+import retrofit.mime.TypedInput;
+import rx.Observer;
+
+/**
+ * Created by cekangaki on 7.01.15.
+ */
+public class LoginApiInteractor extends AbstractAsyncInteractor implements ILoginInputPort {
+
+    private static final String TAG = LoginApiInteractor.class.getSimpleName();
+
+
+    @Inject
+    IAuthenticationApi authenticationApi;
+
+    @Inject
+    private SharedPreferences prefs;
+
+    @Inject
+    NewOpsRestAdapter newOpsRestAdapter;
+
+    /**
+     * Empty Constructor required
+     */
+    public LoginApiInteractor() {
+    }
+
+    @Override
+    public void doLogin(final String username, String password) {
+        sendProgressIndication("Logging in...");
+        final LoginApiRequest user = new LoginApiRequest();
+        user.setUserName(username);
+        user.setPassword(password);
+        subscription = authenticationApi.login(user)
+                .subscribeOn(ioSchedular)
+                .observeOn(uiSchedular)
+                .subscribe(new Observer<Response>() {
+                    @Override
+                    public void onCompleted() {
+                        sendProgressFinished();
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        sendProgressFinished();
+                        if (newOpsRestAdapter.isLastServerName()) {
+                            if (e instanceof RetrofitError) {
+                                RetrofitError error = (RetrofitError) e;
+                                handleRequestError(error);
+                            } else {
+                                sendUnknownErrorOccured(600, "Not Specified");
+                            }
+                        } else {
+                            sendProgressIndication("Error occured trying alternate connection...");
+                            newOpsRestAdapter.setNextServerName();
+                            doLogin(user.getUserName(), user.getPassword());
+                        }
+                    }
+
+                    @Override
+                    public void onNext(Response loginResponse) {
+                        LoginProperties userRepsonse = convertResponseBodyToPojo(loginResponse.getBody());
+                        if (userRepsonse != null && userRepsonse.getStatus() != null) {
+                            if ("0".equals(userRepsonse.getStatus().getReturnCode())) {
+                                saveUserSessionInfo(loginResponse.getHeaders());
+                                sendLoginSuccessful(userRepsonse);
+                            } else {
+                                clearSessionCookie();
+                                sendLoginNotSuccessful(userRepsonse.getStatus().getMessage());
+                            }
+                        } else {
+                            sendLoginNotSuccessful("Error occurred during login. Please try again.");
+                        }
+                    }
+                });
+    }
+
+    @Override
+    public void doLogout() {
+
+        subscription = authenticationApi.logout()
+                .subscribeOn(ioSchedular)
+                .observeOn(uiSchedular)
+                .subscribe(new Observer<Response>() {
+                    @Override
+                    public void onCompleted() {
+                        clearSessionCookie();
+                        sendProgressFinished();
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        clearSessionCookie();
+                        sendProgressFinished();
+                    }
+
+                    @Override
+                    public void onNext(Response userResource) {
+                        clearSessionCookie();
+                        sendProgressFinished();
+                    }
+                });
+    }
+
+    private LoginProperties convertResponseBodyToPojo(TypedInput responseBody) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            LoginProperties serializedResponse = mapper.readValue(responseBody.in(), LoginProperties.class);
+            return serializedResponse;
+        } catch (IOException ex) {
+                return null;
+        }
+    }
+
+    private void saveUserSessionInfo(List<Header> headers) {
+        for (Header header : headers) {
+            if ("SET-COOKIE".equalsIgnoreCase(header.getName())) {
+                String[] sessionData = StringUtils.split(header.getValue(),";");
+                if (StringUtils.startsWithIgnoreCase(sessionData[0], "JSESSIONID=")) {
+                    prefs.edit().putString(PrefsConsts.JSESSIONID, StringUtils.removeStartIgnoreCase(sessionData[0], "JSESSIONID=")).apply();
+                }
+            }
+        }
+    }
+
+    private void clearSessionCookie() {
+        prefs.edit().putString(PrefsConsts.JSESSIONID, null).apply();
+    }
+
+    private void handleRequestError(RetrofitError error) {
+        if (error.isNetworkError()) {
+            networkError();
+            return;
+        }
+        int statusCode = error.getResponse().getStatus();
+        switch (statusCode) {
+            case 401:
+                sendLoginNotSuccessful(null);
+                break;
+            default:
+                sendUnknownErrorOccured(statusCode, error.getResponse().getReason());
+                break;
+        }
+    }
+
+    private void sendLoginSuccessful(LoginProperties response) {
+        for (IInteractorOutputPort outputPort : outputPorts) {
+            try {
+                ((ILoginOutputPort) outputPort).loginSuccessful();
+            } catch (Exception ignored) {
+                L.i(TAG, ignored.getMessage(), ignored);
+            }
+        }
+    }
+
+    private void sendLoginNotSuccessful(String message) {
+        for (IInteractorOutputPort outputPort : outputPorts) {
+            try {
+                ((ILoginOutputPort) outputPort).loginNotSuccessful(message);
+            } catch (Exception ignored) {
+                L.i(TAG, ignored.getMessage(), ignored);
+            }
+        }
+    }
+}

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_height="wrap_content"
+    android:layout_width="234dp"
+    tools:ignore="RtlHardcoded">
+
+    <LinearLayout
+        android:id="@+id/ll_tts_speaker"
+        android:clickable="true"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="20dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp">
+
+        <ImageView
+            android:contentDescription="@string/customizeddialog"
+            android:layout_height="22dp"
+            android:layout_width="22dp"
+            android:layout_marginRight="8dp"
+            android:background="@drawable/ic_speaker"
+            android:layout_gravity="top" />
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:paddingTop="2dp"
+                android:layout_marginRight="22dp"
+                android:paddingBottom="14dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/dialog_maximum_payload"
+                android:id="@+id/tv_dialog_message"
+                android:gravity="center"
+                android:textSize="@dimen/warning_dlg_text_size"
+                android:drawableBottom="@drawable/ic_warning_yellow"
+                android:drawablePadding="14dp" />
+        </LinearLayout>
+
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_gravity="center"
+        android:padding="5dp">
+
+        <EditText
+            android:id="@+id/edt_input"
+            android:layout_gravity="center"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:hint=""
+            android:visibility="gone"
+            android:background="@drawable/apptheme_edit_text_holo_dark"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/btn_dialog_positive"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="@string/dialog_new_transport"
+            android:background="@drawable/btn_log_out"
+            android:layout_gravity="center_horizontal"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/warning_dlg_text_size" />
+
+        <Button
+            android:id="@+id/btn_dialog_negative"
+            android:layout_width="match_parent"
+            android:background="@drawable/btn_black"
+            android:layout_height="50dp"
+            android:text="@string/dialog_cancel"
+            android:layout_gravity="center_horizontal"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/warning_dlg_text_size" />
+    </LinearLayout>
+
+</LinearLayout>

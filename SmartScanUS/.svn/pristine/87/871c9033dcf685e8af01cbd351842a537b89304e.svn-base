@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="facility_keys">
+        <item>ATL</item>
+        <item>BOS</item>
+        <item>BWI</item>
+        <item>CVG</item>
+        <item>CVT</item>
+        <item>DEN</item>
+        <item>DFW</item>
+        <item>EWR</item>
+        <item>LAX</item>
+        <item>MCO</item>
+        <item>MEM</item>
+        <item>ORD</item>
+        <item>PHX</item>
+        <item>RDU</item>
+        <item>SEA</item>
+        <item>SFO</item>
+        <item>SLC</item>
+        <item>STL</item>
+    </string-array>
+
+    <string-array name="facility_urls">
+        <item>atlappnops1.dhlglobalmail.corp|9001|false</item>
+        <item>bosdbnops1.dhlglobalmail.corp|9001|false</item>
+        <item>bwidbnops1.dhlglobalmail.corp|9001|false</item>
+        <item>uscvgls00020001.phx-dc.dhl.com|9001|false</item>
+        <item>inddbnops1.dhlglobalmail.corp|9001|false</item>
+        <item>dendbnops1.dhlglobalmail.corp|9001|false</item>
+        <item>dfwappnops1.dhlglobalmail.corp|9001|false</item>
+        <item>usewrls00020001.phx-dc.dhl.com|9001|false</item>
+        <item>laxappnops1.dhlglobalmail.corp|9001|false</item>
+        <item>mcodbnops1.dhlglobalmail.corp|9001|false</item>
+        <item>memdbnops1.dhlglobalmail.corp|9001|false</item>
+        <item>orddbnops1.dhlglobalmail.corp|9001|false</item>
+        <item>phxdbnops1.dhlglobalmail.corp|9001|false</item>
+        <item>rduappnops1.dhlglobalmail.corp|9001|false</item>
+        <item>usseals0002001.phx-dc.dhl.com|9001|false</item>
+        <item>sfodbnops1.dhlglobalmail.corp|9001|false</item>
+        <item>slcdbnops1.dhlglobalmail.corp|9001|false</item>
+        <item>stldbnops1.dhlglobalmail.corp|9001|false</item>
+    </string-array>
+
+</resources>

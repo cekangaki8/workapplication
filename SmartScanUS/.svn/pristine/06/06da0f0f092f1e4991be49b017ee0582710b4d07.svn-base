@@ -1,0 +1,158 @@
+package com.dpwn.smartscanus.transport.interactor;
+
+import com.dpwn.smartscanus.interactor.IInteractorOutputPort;
+import com.dpwn.smartscanus.interactor.async.AbstractAsyncInteractor;
+import com.dpwn.smartscanus.interactor.async.IUnauthorizedOutputPort;
+import com.dpwn.smartscanus.logging.L;
+import com.dpwn.smartscanus.newopsapi.ILoadTransportApi;
+import com.dpwn.smartscanus.newopsapi.resources.BarcodeRequest;
+import com.dpwn.smartscanus.newopsapi.resources.BarcodeResponse;
+import com.dpwn.smartscanus.newopsapi.resources.LTReceptacleNestingRequest;
+import com.dpwn.smartscanus.newopsapi.resources.LTReceptacleNestingResponse;
+import com.dpwn.smartscanus.newopsapi.resources.MessageResponse;
+import com.dpwn.smartscanus.transport.ILoadTransportOutputPort;
+import com.dpwn.smartscanus.transport.ITUNestingInputPort;
+import com.dpwn.smartscanus.transport.LoadTranportConstants;
+import com.google.inject.Inject;
+
+import retrofit.RetrofitError;
+import rx.Observer;
+
+/**
+ * Created by cekangak on 9/25/2015.
+ */
+public class LoadTUNestingInteractor extends AbstractAsyncInteractor implements ITUNestingInputPort {
+
+    private static final String TAG = LoadTUNestingInteractor.class.getSimpleName();
+
+    @Inject
+    protected ILoadTransportApi loadTransportApi;
+
+    @Override
+    public void getTrasportUnit(String barcode) {
+        sendProgressIndication("Sending Transport Unit to Newops ...");
+        final String barcodeRequested = barcode;
+        subscription = loadTransportApi.getTransportUnit(new BarcodeRequest(barcode))
+                .subscribeOn(ioSchedular)
+                .observeOn(uiSchedular)
+                .subscribe(new Observer<BarcodeResponse>() {
+                    @Override
+                    public void onCompleted() {
+                        sendProgressFinished();
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        sendProgressFinished();
+                        if (e instanceof RetrofitError) {
+                            handleRetrofitError((RetrofitError) e);
+                        } else {
+                            sendUnknownErrorOccured(600, "Not specified");
+                        }
+                    }
+
+                    @Override
+                    public void onNext(BarcodeResponse response) {
+                        sendProgressFinished();
+                        if (response != null && response.getStatus() != null) {
+                            if ("0".equals(response.getStatus().getReturnCode())) {
+                                MessageResponse msg = new MessageResponse(response.getResponse().getDescription());
+                                msg.getParameterValues().put(LoadTranportConstants.TU_NUMBER, barcodeRequested);
+                                sendSuccessfulMessage(msg);
+                            } else {
+                                sendErrorMessage(new MessageResponse(response.getStatus().getMessage()));
+                            }
+                        } else {
+                            sendErrorMessage(new MessageResponse("Error occurred while sending data to Newops."));
+                        }
+                    }
+                });
+    }
+
+    @Override
+    public void processReceptacleToTU(String transportUnitNumber, String receptacleNumber) {
+        sendProgressIndication("Sending Receptacle to Newops ...");
+        subscription = loadTransportApi.processReceptacleToTU(new LTReceptacleNestingRequest(transportUnitNumber,
+                receptacleNumber)).subscribeOn(ioSchedular).observeOn(uiSchedular).subscribe(
+                new Observer<LTReceptacleNestingResponse>() {
+
+                    @Override
+                    public void onCompleted() {
+                        sendProgressFinished();
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        sendProgressFinished();
+                        if (e instanceof RetrofitError) {
+                            handleRetrofitError((RetrofitError) e);
+                        } else {
+                            sendUnknownErrorOccured(600, "Not specified");
+                        }
+                    }
+
+                    @Override
+                    public void onNext(LTReceptacleNestingResponse ltReceptacleNestingResponse) {
+                        if (ltReceptacleNestingResponse != null && ltReceptacleNestingResponse.getStatus() != null) {
+                            if ("0".equals(ltReceptacleNestingResponse.getStatus().getReturnCode())) {
+                                MessageResponse msg = new MessageResponse(ltReceptacleNestingResponse.getResponse().getDescription());
+                                msg.getParameterValues().put(LoadTranportConstants.RECEPTACLE_COUNT, ltReceptacleNestingResponse.getResponse().getReceptacleCount());
+                                sendSuccessfulMessage(msg);
+                            } else {
+                                sendErrorMessage(new MessageResponse(ltReceptacleNestingResponse.getStatus().getMessage()));
+                            }
+                        } else {
+                            sendErrorMessage(new MessageResponse("Error occurred while sending data to Newops."));
+                        }
+                    }
+                }
+        );
+    }
+
+    private void sendSuccessfulMessage(MessageResponse msg) {
+        for (IInteractorOutputPort outputPort : outputPorts) {
+            try {
+                ((ILoadTransportOutputPort) outputPort).scanProcessedSuccessfully(msg);
+            } catch (Exception ex) {
+                L.e(TAG, ex.getMessage(), ex);
+            }
+        }
+    }
+
+    private void sendErrorMessage(MessageResponse msg) {
+        for (IInteractorOutputPort outputPort : outputPorts) {
+            try {
+                ((ILoadTransportOutputPort) outputPort).scanProcessingError(msg);
+            } catch (Exception ex) {
+                L.e(TAG, ex.getMessage(), ex);
+            }
+        }
+    }
+
+    private void handleRetrofitError(RetrofitError error) {
+        if (error.isNetworkError()) {
+            networkError();
+            return;
+        }
+        int statusCode = error.getResponse().getStatus();
+        switch (statusCode) {
+            case 401:
+                sendUnauthorized();
+                break;
+            default:
+                sendUnknownErrorOccured(statusCode, error.getResponse().getReason());
+                break;
+        }
+    }
+
+    private void sendUnauthorized() {
+        for (IInteractorOutputPort outputPort : outputPorts) {
+            try {
+                ((IUnauthorizedOutputPort) outputPort).unauthorizedRequest();
+            } catch (Exception ignored) {
+                L.i(TAG, ignored.getMessage(), ignored);
+            }
+        }
+    }
+
+}

@@ -1,0 +1,105 @@
+package com.dpwn.smartscanus.transport.ui;
+
+import android.graphics.Color;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import com.dpwn.smartscanus.R;
+import com.dpwn.smartscanus.events.RingBeepEvent;
+import com.dpwn.smartscanus.events.VibrateEvent;
+import com.dpwn.smartscanus.interactor.IInteractorInputPort;
+import com.dpwn.smartscanus.interactor.async.AsyncInteractorFragment;
+import com.dpwn.smartscanus.newopsapi.resources.MessageResponse;
+import com.dpwn.smartscanus.transport.ILoadTransportOutputPort;
+import com.dpwn.smartscanus.transport.ITUNestingInputPort;
+import com.dpwn.smartscanus.transport.LoadTranportConstants;
+import com.dpwn.smartscanus.utils.PrefsConsts;
+import com.google.inject.Inject;
+
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import roboguice.inject.InjectView;
+
+/**
+ * Created by cekangak on 9/24/2015.
+ */
+public class ScanTransportUnitFragment extends AsyncInteractorFragment implements ILoadTransportOutputPort{
+
+    private static final java.lang.String TAG = ScanTransportUnitFragment.class.getSimpleName();
+
+    @Inject
+    ITUNestingInputPort interactor;
+
+    @InjectView(R.id.tvLoadTransportTUNumber)
+    private TextView tvTransportUnitNumber;
+
+    @InjectView(R.id.ll_LoadTuMessagePane)
+    private LinearLayout llMessagePane;
+
+    @InjectView(R.id.tv_LT_ErrorMessage)
+    private TextView tvErrorMessage;
+
+    @Override
+    public List<IInteractorInputPort> getInteractors() {
+        ArrayList<IInteractorInputPort> interactors = new ArrayList<IInteractorInputPort>();
+        interactors.add(interactor);
+        return interactors;
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        if (this.getArguments() != null) {
+            String tu = this.getArguments().getString(LoadTranportConstants.TU_NUMBER);
+            if (StringUtils.isNotBlank(tu)) {
+                onBarcodeRead(tu);
+            }
+        }
+    }
+
+    @Override
+    public void onBarcodeRead(String barcode) {
+        if (outputPortHelper.isInProgress()) {
+            tts("Please wait while in progress");
+        } else {
+            tvTransportUnitNumber.setText(barcode);
+            interactor.getTrasportUnit(barcode);
+        }
+    }
+
+    @Override
+    public int getLayoutId() {
+        return R.layout.fragment_loadtransport_scantu;
+    }
+
+    @Override
+    public void onClick(View view) {
+        view.getId();
+    }
+
+    @Override
+    public void scanProcessedSuccessfully(MessageResponse msg) {
+        Bundle args = new Bundle();
+        args.putString(LoadTranportConstants.TU_NUMBER, msg.getParameterValues().get(LoadTranportConstants.TU_NUMBER));
+        fragmentContainer.setContentFragment(ScanReceptactleIntoTuFragment.class, true, args);
+    }
+
+    @Override
+    public void scanProcessingError(MessageResponse msg) {
+        llMessagePane.setBackgroundColor(Color.RED);
+        tvErrorMessage.setText(msg.getMsg());
+        bus.post(new VibrateEvent(PrefsConsts.VIB_DURATION));
+        tts(msg.getMsg());
+        bus.post(new RingBeepEvent());
+    }
+
+    @Override
+    public void scanProcessingWarning(MessageResponse msg) {
+
+    }
+}

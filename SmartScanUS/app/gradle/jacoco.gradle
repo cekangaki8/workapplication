@@ -1,0 +1,26 @@
+configurations {
+    codeCoverage
+    codeCoverageAnt
+}
+
+repositories {
+    mavenCentral()
+}
+dependencies {
+    codeCoverage 'org.jacoco:org.jacoco.agent:0.6.4.201312101107'
+    codeCoverageAnt 'org.jacoco:org.jacoco.ant:0.6.4.201312101107'
+}
+
+tasks.whenTaskAdded { task ->
+    if (task.name == 'connectedInstrumentTestCsvDebug') { /* Name of your test task */
+        apply plugin: 'java' // adds 'test' task
+test {
+        jvmArgs "-javaagent:${configurations.codeCoverage.asPath}=destfile=${project.rootDir.path}/reports/jacoco.exec,sessionid=HSServ,append=false",
+                '-Djacoco=true',
+                '-Xms128m',
+                '-Xmx512m',
+                '-XX:MaxPermSize=128m'
+    }
+}
+
+}
